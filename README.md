@@ -1,5 +1,8 @@
 # FOML
- Fabric OBJ Model Loader
+Fabric OBJ Model Loader
+
+## Only OBJ model supported for **BLOCK** has updated to 1.21.1
+(2024.12.17)
 
 # Adding the API to your project
 

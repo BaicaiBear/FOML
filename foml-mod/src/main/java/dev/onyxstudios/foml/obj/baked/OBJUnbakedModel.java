@@ -6,25 +6,27 @@ import de.javagl.obj.Mtl;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjSplitting;
 import dev.onyxstudios.foml.obj.FOMLMaterial;
+import dev.onyxstudios.foml.obj.MtlReader;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.mesh.Mesh;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;
-import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.client.render.model.ModelBakeSettings;
-import net.minecraft.client.render.model.ModelLoader;
-import net.minecraft.client.render.model.UnbakedModel;
+import net.minecraft.client.render.model.*;
 import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.util.SpriteIdentifier;
-import net.minecraft.client.util.math.AffineTransformation;
-import net.minecraft.client.util.math.Vector3f;
+import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Function;
 
@@ -44,7 +46,7 @@ public class OBJUnbakedModel implements UnbakedModel {
 
         Mtl mtl = this.findMtlForName("sprite");
         this.sprite = mtls.size() > 0
-                ? new SpriteIdentifier(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE, new Identifier((mtl == null ? mtls.values().iterator().next() : mtl).getMapKd()))
+                ? new SpriteIdentifier(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE, Identifier.of((mtl == null ? mtls.values().iterator().next() : mtl).getMapKd()))
                 : DEFAULT_SPRITE;
     }
 
@@ -58,15 +60,12 @@ public class OBJUnbakedModel implements UnbakedModel {
     }
 
     @Override
-    public Collection<SpriteIdentifier> getTextureDependencies(Function<Identifier, UnbakedModel> unbakedModelGetter, Set<Pair<String, String>> unresolvedTextureReferences) {
-        List<SpriteIdentifier> sprites = new ArrayList<>();
-        mtls.values().forEach(mtl -> sprites.add(new SpriteIdentifier(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE, new Identifier(mtl.getMapKd()))));
+    public void setParents(Function<Identifier, UnbakedModel> function) {
 
-        return sprites;
     }
 
     @Override
-    public BakedModel bake(ModelLoader loader, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings bakeSettings, Identifier modelId) {
+    public BakedModel bake(Baker baker, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings bakeSettings) {
         Renderer renderer = RendererAccess.INSTANCE.getRenderer();
         Mesh mesh = null;
 
@@ -95,7 +94,7 @@ public class OBJUnbakedModel implements UnbakedModel {
                         }
                     }
 
-                    mtlSprite = getMtlSprite(textureGetter, new Identifier(mtl.getMapKd()));
+                    mtlSprite = getMtlSprite(textureGetter, Identifier.of(mtl.getMapKd()));
                 }
 
                 for (int i = 0; i < matGroupObj.getNumFaces(); i++) {
@@ -119,9 +118,13 @@ public class OBJUnbakedModel implements UnbakedModel {
 
                     emitter.spriteColor(0, color, color, color, color);
                     emitter.material(RendererAccess.INSTANCE.getRenderer().materialFinder().find());
-                    emitter.colorIndex(mtl.getTintIndex());
+                    try {
+                        emitter.colorIndex(MtlReader.read(new InputStreamReader((new FileInputStream("/Users/baicaibear/Documents/小程序们/Lantern-in-Storm/src/main/resources/assets/minecraft/block/mtl/torch.mtl")))).getFirst().getTintIndex());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     emitter.nominalFace(emitter.lightFace());
-                    emitter.spriteBake(0, mtlSprite, MutableQuadView.BAKE_NORMALIZED | (bakeSettings.isShaded() ? MutableQuadView.BAKE_LOCK_UV : 0));
+                    emitter.spriteBake(0, mtlSprite, MutableQuadView.BAKE_NORMALIZED | (bakeSettings.isUvLocked() ? MutableQuadView.BAKE_LOCK_UV : 0));
 
                     emitter.emit();
                 }
@@ -141,11 +144,11 @@ public class OBJUnbakedModel implements UnbakedModel {
 
         if (bakeSettings.getRotation() != AffineTransformation.identity() && !degenerate) {
             vertex.add(-0.5F, -0.5F, -0.5F);
-            vertex.rotate(bakeSettings.getRotation().getRotation2());
+            vertex.rotate(bakeSettings.getRotation().getRightRotation());
             vertex.add(0.5f, 0.5f, 0.5f);
         }
 
-        emitter.pos   (vertIndex, vertex.getX(), vertex.getY(), vertex.getZ());
+        emitter.pos   (vertIndex, vertex.x, vertex.y, vertex.z);
         emitter.normal(vertIndex, normal.getX(), normal.getY(), normal.getZ());
 
         if(obj.getNumTexCoords() > 0) {

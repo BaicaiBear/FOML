@@ -51,10 +51,10 @@ public class MtlReader
      * @throws IOException If an IO error occurs
      */
     public static List<FOMLMaterial> read(InputStream inputStream)
-        throws IOException
+            throws IOException
     {
         BufferedReader reader = new BufferedReader(
-            new InputStreamReader(inputStream));
+                new InputStreamReader(inputStream));
         return readImpl(reader);
     }
 
@@ -68,7 +68,7 @@ public class MtlReader
      * @throws IOException If an IO error occurs
      */
     public static List<FOMLMaterial> read(Reader reader)
-        throws IOException
+            throws IOException
     {
         if (reader instanceof BufferedReader)
         {
@@ -87,7 +87,7 @@ public class MtlReader
      * @throws IOException If an IO error occurs
      */
     private static List<FOMLMaterial> readImpl(BufferedReader reader)
-        throws IOException
+            throws IOException
     {
         List<FOMLMaterial> mtlList = new ArrayList<>();
 
